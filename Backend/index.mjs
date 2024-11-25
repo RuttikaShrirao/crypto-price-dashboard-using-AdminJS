@@ -1,40 +1,5 @@
-// import AdminJS from 'adminjs'
-// import AdminJSExpress from '@adminjs/express'
-// import express from 'express'
-// import mongoose from "mongoose";
-// import * as AdminJSMongoose from '@adminjs/mongoose'
-
-// import dotenv from "dotenv";
-// dotenv.config()
-// // const mongooseDb = await mongoose.connect('mongodb://localhost:27017/test')
-// const PORT = process.env.PORT || 5000;
-// const MONGO_URI = process.env.MONGO_URI;
-// // .then(() => console.log('MongoDB Connected'))
-// // .catch((err) => console.error('MongoDB Connection Error:', err));
-
-// const start = async () => {
-//   const app = express()
-//   console.log(MONGO_URI)
-//   // process.exit(1)
-//   const mongooseDb = await mongoose.connect(MONGO_URI).then(() => console.log('MongoDB Connected'))
-//   .catch((err) => console.error('MongoDB Connection Error:', err));
-//   const admin = new AdminJS({
-//     databases: [mongooseDb],
-//   })
-// // -------------------------------
-// // AdminJS.registerAdapter(AdminJSMongoose);
-// // ----------------------------------
-
-//   const adminRouter = AdminJSExpress.buildRouter(admin)
-//   app.use(admin.options.rootPath, adminRouter)
-//   app.listen(PORT, () => {
-//     console.log(`AdminJS started on http://localhost:${PORT}${admin.options.rootPath}`)
-//   })
-// }
-
-// start()
-
 import express from "express";
+import axios from "axios";
 import AdminJS from "adminjs";
 import mongoose from "mongoose";
 import AdminJSExpress from "@adminjs/express";
@@ -56,9 +21,9 @@ mongoose
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.error("MongoDB Connection Error:", err));
 
-// Example Mongoose Model
-const User = mongoose.model(
-  "User",
+// Mongoose Model
+const Token = mongoose.model(
+  "Token",
   new mongoose.Schema({
     icon: String,
     Coin_Name: String,
@@ -66,12 +31,32 @@ const User = mongoose.model(
   })
 );
 
+// dropdown option getting fron coingico
+const fetchCoinList = async () => {
+  try {
+    const response = await axios.get(
+      "https://api.coingecko.com/api/v3/coins/list"
+    );
+    const coinList = response.data;
+    // Transform the data into a format compatible with AdminJS availableValues
+    return coinList.slice(0, 20).map((coin) => ({
+      value: coin.id, // unique identifier
+      label: coin.name, // display name in the dropdown
+    }));
+  } catch (error) {
+    console.error("Error fetching coin list:", error);
+    return [];
+  }
+};
+// coin list array assign --> coinOptions
+const coinOptions = await fetchCoinList();
+
 // AdminJS Configuration
 const adminJs = new AdminJS({
   resources: [
     {
       // schema
-      resource: User,
+      resource: Token,
 
       options: {
         // control field visibility
@@ -81,12 +66,7 @@ const adminJs = new AdminJS({
         properties: {
           // dropdown
           Coin_Name: {
-            availableValues: [
-              { value: "male", label: "Male" },
-              { value: "female", label: "Female" },
-              { value: "other", label: "Other" },
-              { value: "notSay", label: "Rather not say" },
-            ],
+            availableValues: coinOptions,
           },
         },
       },
@@ -96,20 +76,47 @@ const adminJs = new AdminJS({
   // changing default button text
   locale: {
     translations: {
-      buttons: {
-        save: "Get Price",
-        delete: "Remove",
+      actions: {
+        new: {
+          buttons: {
+            save: "Get Price", // Change "Save" button text to "Get Price"
+          },
+        },
+        edit: {
+          buttons: {
+            save: "Update Price", // Change "Save" text in edit form if needed
+          },
+        },
       },
     },
   },
   rootPath: "/admin",
 });
-
+console.log(adminJs.options)
 // AdminJS Router
 const adminRouter = AdminJSExpress.buildRouter(adminJs);
 app.use(adminJs.options.rootPath, adminRouter);
 
 // Start the Server
 app.listen(PORT, () =>
-  console.log(`Server started on http://localhost:${PORT}${adminJs.options.rootPath}/resources/User`)
+  console.log(
+    `Server started on http://localhost:${PORT}${adminJs.options.rootPath}/resources/Token`
+  )
 );
+
+// import express from "express";
+// import dotenv from "dotenv";
+// import connectDB from "./config/db.js";
+// import { adminRouter } from "./routes/adminRoutes.js";
+
+// dotenv.config();
+// connectDB();
+
+// const app = express();
+// const PORT = process.env.PORT || 5000;
+
+// app.use("/admin", adminRouter);
+
+// app.listen(PORT, () =>
+//   console.log(`Server started at http://localhost:${PORT}/admin`)
+// );
