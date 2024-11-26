@@ -16,6 +16,7 @@ const app = express();
 // MongoDB Connection
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
+const api_key = process.env.api_key;
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
@@ -92,11 +93,11 @@ const adminJs = new AdminJS({
                       },
                       headers: {
                         accept: "application/json",
-                        "x-cg-demo-api-key": "CG-jQRa5k6aW4XV42LkU9HNynmL",
+                        "x-cg-demo-api-key": api_key,
                       },
                     }
                   );
-
+                  
                   const coinData = apiResponse.data[coin].inr;
                   if (coinData) {
                     // Add price and icon to request payload
