@@ -98,8 +98,6 @@ const adminJs = new AdminJS({
                   );
 
                   const coinData = apiResponse.data[coin].inr;
-                  console.log(coinData, "bitcoin", "samiksha", coin);
-
                   if (coinData) {
                     // Add price and icon to request payload
                     request.payload = {
