@@ -25,46 +25,103 @@ mongoose
 const Token = mongoose.model(
   "Token",
   new mongoose.Schema({
-    icon: String,
     Coin_Name: String,
     Price: Number,
   })
 );
 
-// dropdown option getting fron coingico
+// Fetch coin list for dropdown
 const fetchCoinList = async () => {
   try {
     const response = await axios.get(
       "https://api.coingecko.com/api/v3/coins/list"
     );
-    const coinList = response.data;
-    // Transform the data into a format compatible with AdminJS availableValues
-    return coinList.slice(0, 20).map((coin) => ({
-      value: coin.id, // unique identifier
-      label: coin.name, // display name in the dropdown
+    return response.data.slice(0, 20).map((coin) => ({
+      key: coin.id,
+      value: coin.id,
+      label: coin.name,
     }));
   } catch (error) {
     console.error("Error fetching coin list:", error);
     return [];
   }
 };
-// coin list array assign --> coinOptions
+
 const coinOptions = await fetchCoinList();
 
 // AdminJS Configuration
 const adminJs = new AdminJS({
   resources: [
     {
-      // schema
       resource: Token,
-
       options: {
-        // control field visibility
-        listProperties: ["icon", "Coin_Name", "Price"],
+        // display properties
+        listProperties: ["Coin_Name", "Price"],
+        showProperties: ["Coin_Name", "Price"],
         editProperties: ["Coin_Name"],
 
+        // actions: {
+        //   GetJsonData: {
+        //     actionType: "record",
+        //     isAccessible: true,
+        //     handler: (request, response, context) => {
+        //       const { record, currentAdmin } = context
+        //       console.log(context,"===context====")
+        //       return {
+        //         record: record.toJSON(currentAdmin),
+        //         msg: 'Hello world',
+        //       }
+        //     },
+        //   },
+        // },
+
+        actions: {
+          new: {
+            before: async (request) => {
+              if (request.payload.Coin_Name) {
+                try {
+                  const coin = request.payload.Coin_Name;
+
+                  // Fetch coin data from CoinGecko API
+                  const apiResponse = await axios.get(
+                    `https://api.coingecko.com/api/v3/simple/price`,
+                    {
+                      params: {
+                        ids: coin,
+                        vs_currencies: "inr",
+                      },
+                      headers: {
+                        accept: "application/json",
+                        "x-cg-demo-api-key": "CG-jQRa5k6aW4XV42LkU9HNynmL",
+                      },
+                    }
+                  );
+
+                  const coinData = apiResponse.data[coin].inr;
+                  console.log(coinData, "bitcoin", "samiksha", coin);
+
+                  if (coinData) {
+                    // Add price and icon to request payload
+                    request.payload = {
+                      ...request.payload, // Spread existing payload
+                      Price: coinData,
+                    };
+                  } else {
+                    console.error(`No data found for coin: ${Coin_Name}`);
+                  }
+                } catch (error) {
+                  console.error("Error fetching coin data:", error.message);
+                }
+              } else {
+                console.warn("No Coin_Name provided in payload.");
+              }
+
+              return request;
+            },
+          },
+        },
+
         properties: {
-          // dropdown
           Coin_Name: {
             availableValues: coinOptions,
           },
@@ -73,18 +130,17 @@ const adminJs = new AdminJS({
     },
   ],
 
-  // changing default button text
   locale: {
     translations: {
       actions: {
         new: {
           buttons: {
-            save: "Get Price", // Change "Save" button text to "Get Price"
+            save: "Get Price",
           },
         },
         edit: {
           buttons: {
-            save: "Update Price", // Change "Save" text in edit form if needed
+            save: "Update Price",
           },
         },
       },
@@ -92,7 +148,7 @@ const adminJs = new AdminJS({
   },
   rootPath: "/admin",
 });
-console.log(adminJs.options)
+
 // AdminJS Router
 const adminRouter = AdminJSExpress.buildRouter(adminJs);
 app.use(adminJs.options.rootPath, adminRouter);
