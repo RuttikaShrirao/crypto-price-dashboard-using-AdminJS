@@ -65,6 +65,8 @@ Example . import deLocale from './de/translation.json' **assert**  { type: 'json
 
 5. Open your browser and visit `http://localhost:5000/admin/resources/Token` to see the dashboard.
 
+   ![Uploading Screenshot 2024-11-26 023114.png…]()
+
 Happy coding! 😊
 
 
